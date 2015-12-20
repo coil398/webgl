@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <title>webgl</title>
+     <script src = "./js/application.js"></script>
+     <script type="glsl" id="vs">
+     precision mediump float;
+     // uniform:constants sent from the program
+     uniform mat4 modelviewMatrix; //a matrix for a parallel and ratary motion
+     uniform mat4 projectionMatrix; //
+     // attribute: verticies data sent from the program
+     attribute vec3 vertex;
+     attribute vec3 normal;
+     // varying: data sent from the vertex shader to the fragment shader
+     varying vec3 e_normal;
+
+     void main(){
+         // transform vertex coordinates to clipping system
+         gl_Position = projectionMatrix * modelviewMatrix * vec4(vertex,1.0);
+         // transform normal vectors to world coordinate system
+         e_normal = vec3(modelviewMatrix * vec4(normal,0.0));
+     }
+     </script>
+     <script type="glsl" id="fs">
+     precision mediump float;
+     // varying : data sent from the vertex shader
+     varying vec3 e_normal;
+
+     void main(){
+         // normalize the normal vector
+         vec3 n = normalize(e_normal);
+         // decide a light intensity by a dot product between the normal vector and the light vector
+         float l = abs(dot(n,normalize(vec3(-1,1,1))));
+         // set a color of this pixel to RGBA(l,l,l,1)
+         gl_FragColor = vec4(l,l,l,1.0);
+     }
+     </script>
+</head>
+
+<body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+</body>
+</html>
