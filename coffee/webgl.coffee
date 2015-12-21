@@ -1,11 +1,38 @@
 do ->
+    config = {
+        objName: "./Marisa/untitled.obj"
+    }
+
+    fileCount = 0
+
     window.onload = () ->
-        do initialize
-        return
+        callback = () ->
+            fileCount--
+            if fileCount == 0
+                do initialize
+            return
+        loadFile config.objName,"obj",callback
+        fileCount++
+
+    files = {}
+    loadFile = (url,name,callback) ->
+        xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = () ->
+            if xhr.readyState == 4
+                files[name] = xhr.responseText
+                do callback
+
+        xhr.open "GET",url,true
+        xhr.send ""
+
 
     gl = null
     prog = null
+    glObj = null
     initialize = () ->
+        obj = objParser.objParse files.obj
+        glObj = objParser.createGLObject obj
+
         canvas = document.getElementById 'canvas'
         gl = canvas.getContext 'experimental-webgl' || canvas.getContext 'webgl'
 
@@ -13,6 +40,7 @@ do ->
             document.write 'This browser does not support webgl'
             return
 
+        # compile the vertex shader
         vs = gl.createShader(gl.VERTEX_SHADER)
         gl.shaderSource(vs,document.getElementById('vs').text)
         gl.compileShader(vs)
@@ -22,6 +50,7 @@ do ->
             console.log gl.getShaderInfoLog(vs)
             return
 
+        # compile the fragment shader
         fs = gl.createShader(gl.FRAGMENT_SHADER)
         gl.shaderSource(fs,document.getElementById('fs').text)
         gl.compileShader(fs)
@@ -31,6 +60,7 @@ do ->
             console.log gl.getShaderInfoLog(fs)
             return
 
+        # link the shaders
         prog = gl.createProgram()
         gl.attachShader(prog,vs)
         gl.attachShader(prog,fs)
@@ -41,15 +71,15 @@ do ->
             console.log gl.getShaderInfoLog(fs)
             return
 
-        # use linked program
+        # use the linked program
         gl.useProgram prog
         do loadBuffer
         do drawFrame
 
         return
 
-    vbuf = null
-    nbuf = null
+    vbuf = null # A buffer for vertex coordinates
+    nbuf = null # A buffer for normal vectors
     loadBuffer = () ->
         #頂点座標に関し、バッファを生成してデータを指定
         vbuf = do gl.createBuffer
