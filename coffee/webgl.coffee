@@ -1,6 +1,6 @@
 do ->
     window.onload = () ->
-        initialize
+        do initialize
         return
 
     gl = null
@@ -56,6 +56,40 @@ do ->
         gl.bindBuffer gl.ARRAY_BUFFER,vbuf
         gl.bufferData gl.ARRAY_BUFFER,new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0.5,0.5,0]),gl.STATIC_DRAW
 
+        nbuf = do gl.createBuffer
+        gl.bindBuffer gl.ARRAY_BUFFER,nbuf
+        gl.bufferData gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,0,0,1]),gl.STATIC_DRAW
+
+    frame = 0
+    drawFrame = () ->
+        frame++
+        proj_mat = do mat4.create
+        mat4.frustum proj_mat,-1,1,-1,1,3,10
+
+        mv_mat = do mat4.create
+        mat4.translate mv_mat,mv_mat,[0,0,-6]
+        mat4.rotate mv_mat,mv_mat,frame * 0.01 ,[0,1,0]
+
+        gl.uniformMatrix4fv gl.getUniformLocation(prog,"projectionMatrix"),false,proj_mat
+        gl.uniformMatrix4fv gl.getUniformLocation(prog,"modelviewMatrix"),false,mv_mat
+
+        gl.clearColor 0,0,0,1
+        gl.clear gl.COLOR_BUFFER_BIT || gl.DEPTH_BUFFER_BIT
+        gl.enable gl.DEPTH_TEST
+
+        vpos = gl.getAttribLocation prog,"vertex"
+        npos = gl.getAttribLocation prog,"normal"
+
+        gl.bindBuffer gl.ARRAY_BUFFER,vbuf
+        gl.vertexAttribPointer vpos,3,gl.FLOAT,false,0,0
+        gl.enableVertexAttribArray vpos
+
+        gl.bindBuffer gl.ARRAY_BUFFER,nbuf
+        gl.vertexAttribPointer npos,3,gl.FLOAT,true,0,0
+        gl.enableVertexAttribArray npos
+
+        gl.drawArrays gl.TRIANGLES,0,3
+        setTimeout drawFrame,16
 
 
     return
