@@ -61,6 +61,18 @@ objParser.createGLObject = (obj) ->
 
     normals = new Float32Array numTriangles * 9
 
+    #頂点ごとに法線ベクトルの和用配列
+    normalAtVertex = new Array numTriangles * 3
+    #頂点ごとの法線ベクトルの計算用関数
+    addNormal = (index,n) ->
+        if !normalAtVertex[index]
+            normalAtVertex[index] = vec3.clone n
+            return
+        else
+            normal = normalAtVertex[index]
+            vec3.add normal,normal,n
+        return
+
     triangleCount = 0
 
     for i in [0...obj.faces.length]
@@ -85,13 +97,35 @@ objParser.createGLObject = (obj) ->
 
             vec3.normalize n,n
 
-            normals.set n,triangleCount * 9
-            normals.set n,triangleCount * 9 + 3
-            normals.set n,triangleCount * 9 + 6
+            addNormal vi0,n
+            addNormal vi1,n
+            addNormal vi2,n
+
+            ++triangleCount
+
+    triangleCount = 0
+    for i in [0...obj.faces.length]
+        face = obj.faces[i]
+        for j in [1...face.length - 1]
+            vi0 = face[0].vindex - 1
+            vi1 = face[j].vindex - 1
+            vi2 = face[j+1].vindex - 1
+
+            n0 = normalAtVertex[vi0]
+            n1 = normalAtVertex[vi1]
+            n2 = normalAtVertex[vi2]
+
+            vec3.normalize n0,n0
+            vec3.normalize n1,n1
+            vec3.normalize n2,n2
+
+            normals.set n0,triangleCount * 9
+            normals.set n1,triangleCount * 9 + 3
+            normals.set n2,triangleCount * 9 + 6
 
             ++triangleCount
 
     return {
         vertices: vertices,
-        normals: normals
+        normals:normals
     }

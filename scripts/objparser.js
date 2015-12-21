@@ -64,13 +64,24 @@
   };
 
   objParser.createGLObject = function(obj) {
-    var face, i, j, k, l, m, n, normals, numTriangles, ref, ref1, ref2, triangleCount, v0, v1, v2, vertices, vi0, vi1, vi2;
+    var addNormal, face, i, j, k, l, m, n, n0, n1, n2, normalAtVertex, normals, numTriangles, o, p, ref, ref1, ref2, ref3, ref4, triangleCount, v0, v1, v2, vertices, vi0, vi1, vi2;
     numTriangles = 0;
     for (i = k = 0, ref = obj.faces.length; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
       numTriangles += obj.faces[i].length - 2;
     }
     vertices = new Float32Array(numTriangles * 9);
     normals = new Float32Array(numTriangles * 9);
+    normalAtVertex = new Array(numTriangles * 3);
+    addNormal = function(index, n) {
+      var normal;
+      if (!normalAtVertex[index]) {
+        normalAtVertex[index] = vec3.clone(n);
+        return;
+      } else {
+        normal = normalAtVertex[index];
+        vec3.add(normal, normal, n);
+      }
+    };
     triangleCount = 0;
     for (i = l = 0, ref1 = obj.faces.length; 0 <= ref1 ? l < ref1 : l > ref1; i = 0 <= ref1 ? ++l : --l) {
       face = obj.faces[i];
@@ -89,9 +100,28 @@
         vec3.sub(v2, v2, v0);
         vec3.cross(n, v1, v2);
         vec3.normalize(n, n);
-        normals.set(n, triangleCount * 9);
-        normals.set(n, triangleCount * 9 + 3);
-        normals.set(n, triangleCount * 9 + 6);
+        addNormal(vi0, n);
+        addNormal(vi1, n);
+        addNormal(vi2, n);
+        ++triangleCount;
+      }
+    }
+    triangleCount = 0;
+    for (i = o = 0, ref3 = obj.faces.length; 0 <= ref3 ? o < ref3 : o > ref3; i = 0 <= ref3 ? ++o : --o) {
+      face = obj.faces[i];
+      for (j = p = 1, ref4 = face.length - 1; 1 <= ref4 ? p < ref4 : p > ref4; j = 1 <= ref4 ? ++p : --p) {
+        vi0 = face[0].vindex - 1;
+        vi1 = face[j].vindex - 1;
+        vi2 = face[j + 1].vindex - 1;
+        n0 = normalAtVertex[vi0];
+        n1 = normalAtVertex[vi1];
+        n2 = normalAtVertex[vi2];
+        vec3.normalize(n0, n0);
+        vec3.normalize(n1, n1);
+        vec3.normalize(n2, n2);
+        normals.set(n0, triangleCount * 9);
+        normals.set(n1, triangleCount * 9 + 3);
+        normals.set(n2, triangleCount * 9 + 6);
         ++triangleCount;
       }
     }
