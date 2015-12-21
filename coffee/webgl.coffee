@@ -84,11 +84,11 @@ do ->
         #頂点座標に関し、バッファを生成してデータを指定
         vbuf = do gl.createBuffer
         gl.bindBuffer gl.ARRAY_BUFFER,vbuf
-        gl.bufferData gl.ARRAY_BUFFER,new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0.5,0.5,0]),gl.STATIC_DRAW
+        gl.bufferData gl.ARRAY_BUFFER,glObj.vertices,gl.STATIC_DRAW
 
         nbuf = do gl.createBuffer
         gl.bindBuffer gl.ARRAY_BUFFER,nbuf
-        gl.bufferData gl.ARRAY_BUFFER,new Float32Array([0,0,1,0,0,1,0,0,1]),gl.STATIC_DRAW
+        gl.bufferData gl.ARRAY_BUFFER,glObj.normals,gl.STATIC_DRAW
 
     frame = 0
     drawFrame = () ->
@@ -97,7 +97,7 @@ do ->
         mat4.frustum proj_mat,-1,1,-1,1,3,10
 
         mv_mat = do mat4.create
-        mat4.translate mv_mat,mv_mat,[0,0,-6]
+        mat4.translate mv_mat,mv_mat,[0,-2,-7]
         mat4.rotate mv_mat,mv_mat,frame * 0.01 ,[0,1,0]
 
         gl.uniformMatrix4fv gl.getUniformLocation(prog,"projectionMatrix"),false,proj_mat
@@ -118,7 +118,7 @@ do ->
         gl.vertexAttribPointer npos,3,gl.FLOAT,true,0,0
         gl.enableVertexAttribArray npos
 
-        gl.drawArrays gl.TRIANGLES,0,3
+        gl.drawArrays gl.TRIANGLES,0,glObj.vertices.length / 3
         setTimeout drawFrame,16
 
 
