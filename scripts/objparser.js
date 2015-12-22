@@ -1,6 +1,42 @@
 (function() {
   this.objParser = {};
 
+  objParser.mtlParse = function(text) {
+    var addCurrent, current, i, k, line, lines, mtl, ref, words;
+    mtl = {};
+    current = null;
+    addCurrent = function() {
+      if (current) {
+        mtl[current.name] = current;
+      }
+      return current = {};
+    };
+    lines = text.split('\n');
+    for (i = k = 0, ref = lines.length; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
+      line = lines[i];
+      words = line.split(' ');
+      switch (words[0]) {
+        case 'newmtl':
+          addCurrent();
+          current.name = words[1];
+          break;
+        case 'Kd':
+          current.kd = vec3.fromValues(+words[1], +words[2], +words[3]);
+          break;
+        case 'Ks':
+          current.ks = vec3.fromValues(+words[1], +words[2], +words[3]);
+          break;
+        case 'Ns':
+          current.ns = +words[1];
+          break;
+        case 'map_Kd':
+          current.texture = words[1];
+      }
+    }
+    addCurrent();
+    return mtl;
+  };
+
   objParser.objParse = function(text) {
     var face, faces, i, k, l, line, lines, mtlName, nindex, normals, nums, ref, ref1, texcoords, tindex, vertices, vindex, words;
     vertices = [];
@@ -47,7 +83,6 @@
               vindex: vindex,
               tindex: tindex,
               nindex: nindex,
-              nindex: nindex,
               mtlName: mtlName
             });
           }
@@ -63,8 +98,8 @@
     };
   };
 
-  objParser.createGLObject = function(obj) {
-    var addNormal, face, i, j, k, l, m, n, n0, n1, n2, normalAtVertex, normals, numTriangles, o, p, ref, ref1, ref2, ref3, ref4, triangleCount, v0, v1, v2, vertices, vi0, vi1, vi2;
+  objParser.createGLObject = function(obj, mtl) {
+    var addNormal, currentMtlName, face, i, j, k, l, m, mtlInfos, n, n0, n1, n2, normalAtVertex, normals, numTriangles, o, p, ref, ref1, ref2, ref3, ref4, saveMtlInfo, triangleCount, v0, v1, v2, vertices, vi0, vi1, vi2;
     numTriangles = 0;
     for (i = k = 0, ref = obj.faces.length; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
       numTriangles += obj.faces[i].length - 2;
@@ -82,9 +117,32 @@
         vec3.add(normal, normal, n);
       }
     };
+    currentMtlName = "";
+    mtlInfos = [];
+    saveMtlInfo = function() {
+      if (!mtl) {
+        return mtlInfos.push({
+          endPos: triangleCount * 9,
+          kd: vec3.fromValues(0.5, 0.5, 0.5),
+          ks: vec3.fromValues(0.0, 0.0, 0.0),
+          ns: 1
+        });
+      } else if (currentMtlName) {
+        return mtlInfos.push({
+          endPos: triangleCount * 9,
+          kd: mtl[currentMtlName].kd,
+          ks: mtl[currentMtlName].ks,
+          ns: mtl[currentMtlName].ns
+        });
+      }
+    };
     triangleCount = 0;
     for (i = l = 0, ref1 = obj.faces.length; 0 <= ref1 ? l < ref1 : l > ref1; i = 0 <= ref1 ? ++l : --l) {
       face = obj.faces[i];
+      if (currentMtlName !== face[0].mtlName) {
+        saveMtlInfo();
+        currentMtlName = face[0].mtlName;
+      }
       for (j = m = 1, ref2 = face.length - 1; 1 <= ref2 ? m < ref2 : m > ref2; j = 1 <= ref2 ? ++m : --m) {
         vi0 = face[0].vindex - 1;
         vi1 = face[j].vindex - 1;
@@ -106,6 +164,7 @@
         ++triangleCount;
       }
     }
+    saveMtlInfo();
     triangleCount = 0;
     for (i = o = 0, ref3 = obj.faces.length; 0 <= ref3 ? o < ref3 : o > ref3; i = 0 <= ref3 ? ++o : --o) {
       face = obj.faces[i];
@@ -127,7 +186,8 @@
     }
     return {
       vertices: vertices,
-      normals: normals
+      normals: normals,
+      mtlInfos: mtlInfos
     };
   };
 

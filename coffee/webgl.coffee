@@ -1,6 +1,7 @@
 do ->
     config = {
-        objName: "./Marisa/untitled.obj"
+        objName: "./Marisa/untitled.obj",
+        mtlName: "./Marisa/untitled.mtl"
     }
 
     fileCount = 0
@@ -12,10 +13,11 @@ do ->
                 do initialize
             return
         loadFile config.objName,"obj",callback
-        fileCount++
+        loadFile config.mtlName,"mtl",callback
 
     files = {}
     loadFile = (url,name,callback) ->
+        fileCount++
         xhr = new XMLHttpRequest()
         xhr.onreadystatechange = () ->
             if xhr.readyState == 4
@@ -31,7 +33,9 @@ do ->
     glObj = null
     initialize = () ->
         obj = objParser.objParse files.obj
-        glObj = objParser.createGLObject obj
+        mtl = objParser.objParse files.mtl
+
+        glObj = objParser.createGLObject obj,mtl
 
         canvas = document.getElementById 'canvas'
         gl = canvas.getContext 'experimental-webgl' || canvas.getContext 'webgl'
@@ -118,7 +122,18 @@ do ->
         gl.vertexAttribPointer npos,3,gl.FLOAT,true,0,0
         gl.enableVertexAttribArray npos
 
-        gl.drawArrays gl.TRIANGLES,0,glObj.vertices.length / 3
+        pos = 0
+
+        for i in [0...glObj.mtlInfos.length]
+            mtlInfo = glObj.mtlInfos[i]
+
+            gl.uniform3fv gl.getUniformLocation(prog,"kdcolor"),mtlInfo.kd
+            gl.uniform3fv gl.getUniformLocation(prog,"kscolor"),mtlInfo.ks
+            gl.uniform1f gl.getUniformLocation(prog,"nscolor"),mtlInfo.ns
+
+            gl.drawArrays gl.TRIANGLES,pos / 3,(mtlInfo.endPos - pos) / 3
+            pos = mtlInfo.endPos
+
         setTimeout drawFrame,16
 
 

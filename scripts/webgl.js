@@ -2,7 +2,8 @@
   (function() {
     var config, drawFrame, fileCount, files, frame, gl, glObj, initialize, loadBuffer, loadFile, nbuf, prog, vbuf;
     config = {
-      objName: "./Marisa/untitled.obj"
+      objName: "./Marisa/untitled.obj",
+      mtlName: "./Marisa/untitled.mtl"
     };
     fileCount = 0;
     window.onload = function() {
@@ -14,11 +15,12 @@
         }
       };
       loadFile(config.objName, "obj", callback);
-      return fileCount++;
+      return loadFile(config.mtlName, "mtl", callback);
     };
     files = {};
     loadFile = function(url, name, callback) {
       var xhr;
+      fileCount++;
       xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
@@ -33,9 +35,10 @@
     prog = null;
     glObj = null;
     initialize = function() {
-      var canvas, fs, obj, vs;
+      var canvas, fs, mtl, obj, vs;
       obj = objParser.objParse(files.obj);
-      glObj = objParser.createGLObject(obj);
+      mtl = objParser.objParse(files.mtl);
+      glObj = objParser.createGLObject(obj, mtl);
       canvas = document.getElementById('canvas');
       gl = canvas.getContext('experimental-webgl' || canvas.getContext('webgl'));
       if (!gl) {
@@ -83,7 +86,7 @@
     };
     frame = 0;
     drawFrame = function() {
-      var mv_mat, npos, proj_mat, vpos;
+      var i, j, mtlInfo, mv_mat, npos, pos, proj_mat, ref, vpos;
       frame++;
       proj_mat = mat4.create();
       mat4.frustum(proj_mat, -1, 1, -1, 1, 3, 10);
@@ -103,7 +106,15 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, nbuf);
       gl.vertexAttribPointer(npos, 3, gl.FLOAT, true, 0, 0);
       gl.enableVertexAttribArray(npos);
-      gl.drawArrays(gl.TRIANGLES, 0, glObj.vertices.length / 3);
+      pos = 0;
+      for (i = j = 0, ref = glObj.mtlInfos.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+        mtlInfo = glObj.mtlInfos[i];
+        gl.uniform3fv(gl.getUniformLocation(prog, "kdcolor"), mtlInfo.kd);
+        gl.uniform3fv(gl.getUniformLocation(prog, "kscolor"), mtlInfo.ks);
+        gl.uniform1f(gl.getUniformLocation(prog, "nscolor"), mtlInfo.ns);
+        gl.drawArrays(gl.TRIANGLES, pos / 3, (mtlInfo.endPos - pos) / 3);
+        pos = mtlInfo.endPos;
+      }
       return setTimeout(drawFrame, 16);
     };
   })();

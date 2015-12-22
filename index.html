@@ -15,26 +15,32 @@
      attribute vec3 normal;
      // varying: data sent from the vertex shader to the fragment shader
      varying vec3 e_normal;
+     varying vec3 eye_v;
 
      void main(){
          // transform vertex coordinates to clipping system
          gl_Position = projectionMatrix * modelviewMatrix * vec4(vertex,1.0);
          // transform normal vectors to world coordinate system
          e_normal = vec3(modelviewMatrix * vec4(normal,0.0));
+         eye_v = (modelviewMatrix * vec4(vertex,1.0)).xyz;
      }
      </script>
      <script type="glsl" id="fs">
      precision mediump float;
      // varying : data sent from the vertex shader
+     uniform vec3 kdcolor;
+     uniform vec3 kscolor;
+     uniform float nscolor;
      varying vec3 e_normal;
+     varying vec3 eye_v;
 
-     void main(){
-         // normalize the normal vector
-         vec3 n = normalize(e_normal);
-         // decide a light intensity by a dot product between the normal vector and the light vector
-         float l = abs(dot(n,normalize(vec3(-1,1,1))));
-         // set a color of this pixel to RGBA(l,l,l,1)
-         gl_FragColor = vec4(l,l,l,1.0);
+     void main() {
+     	vec3 n = normalize(e_normal); // 正規化された法線ベクトル
+     	vec3 light_v = normalize(vec3(1, 1, 1)); // 正規化された入射光ベクトル
+     	float diffuse = max(dot(light_v, n), 0.0); // 拡散光は入射光ベクトルと法線との内積
+     	float specular = pow(max(dot(-normalize(eye_v), reflect(-light_v, n)), 0.0), nscolor); // 鏡面光は視線ベクトルと反射光ベクトルの内積
+     	float l = 0.5; // 環境光の強さ
+     	gl_FragColor = vec4(kdcolor * diffuse + kscolor * specular, 1.0) + vec4(kdcolor, 1.0) * vec4(l, l, l, 1.0);
      }
      </script>
 </head>
